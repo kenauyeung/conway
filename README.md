@@ -34,6 +34,13 @@ Currently, all cells will be calculated in the transition. Next version should r
 The above improvement should work based on assumption that reviving neighbour will not lead to revive neighbour's neighbour.
 
 ## Build & Deploy
+### Local
+1. git clone https://github.com/kenauyeung/conway.git
+2. cd conway
+3. mvn clean install
+4. java -jar target/conway-1.0.0-SNAPSHOT.jar
+5. open browser and goto http://localhost/
+### Heroku
 Follow guides from https://devcenter.heroku.com/articles/getting-started-with-java#deploy-the-app when deploying to Heroku.
 
 ## Deployed Example
