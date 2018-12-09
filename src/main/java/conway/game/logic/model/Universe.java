@@ -6,49 +6,51 @@ import org.apache.logging.log4j.Logger;
 public class Universe {
 	private Logger logger = LogManager.getLogger(Universe.class);
 
-	private Cell[][] worldCells;
+	private Cell[][] universeCells;
 
 	public Universe(int xRng, int yRng) throws Exception {
 		if (xRng > 0 && yRng > 0) {
-			worldCells = new Cell[yRng][xRng];
-			logger.info("Created world with[x:{}], [y:{}]", xRng, yRng);
+			universeCells = new Cell[yRng][xRng];
+			logger.info("Created universe with[x:{}], [y:{}]", xRng, yRng);
 		} else {
-			throw new Exception(
-					"Unable to create world with [xRng:" + xRng + "], [yRng:" + yRng + "]; Ensure xRng and yRng > 0");
+			throw new Exception("Unable to create universe with [xRng:" + xRng + "], [yRng:" + yRng
+					+ "]; Ensure xRng and yRng > 0");
 		}
 	}
 
 	public int getX() {
-		return worldCells[0].length;
+		return universeCells[0].length;
 	}
 
 	public int getY() {
-		return worldCells.length;
+		return universeCells.length;
 	}
 
 	public Cell getCell(int x, int y) {
 		if (x >= 0 && y >= 0 && x < getX() && y < getY()) {
-			return worldCells[y][x];
+			return universeCells[y][x];
 		}
 		return null;
 	}
 
-	public void setCell(Cell cell) {
+	public boolean setCell(Cell cell) {
 		if (cell.getXLocation() >= 0 && cell.getYLocation() >= 0 && cell.getXLocation() < getX()
-				&& cell.getYLocation() < getY()) {
-			worldCells[cell.getYLocation()][cell.getXLocation()] = cell;
+				&& cell.getYLocation() < getY() && universeCells[cell.getYLocation()][cell.getXLocation()] == null) {
+			universeCells[cell.getYLocation()][cell.getXLocation()] = cell;
+			return true;
 		}
+		return false;
 	}
 
 	public void deleteCell(int x, int y) {
 		if (x >= 0 && y >= 0 && x < getX() && y < getY()) {
-			worldCells[y][x] = null;
+			universeCells[y][x] = null;
 		}
 	}
 
 	public boolean isCellExist(int x, int y) {
 		if (x >= 0 && y >= 0 && x < getX() && y < getY()) {
-			return worldCells[y][x] != null;
+			return universeCells[y][x] != null;
 		}
 
 		return false;

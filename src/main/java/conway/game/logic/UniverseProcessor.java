@@ -1,16 +1,24 @@
 package conway.game.logic;
 
+import static conway.config.WebSocketPath.TOPIC_CELLS;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 import conway.game.logic.model.Cell;
+import conway.game.logic.model.Message;
 import conway.game.logic.model.Universe;
 
 @Component
@@ -21,25 +29,24 @@ public class UniverseProcessor implements Runnable {
 	@Autowired
 	private Universe universeView;
 
-	private long pulse = 500;
+	@Autowired
+	private SimpMessagingTemplate broadcastTemplate;
 
-	private List<int[]> deleteList = new ArrayList<>();
-	private List<Cell> createList = new ArrayList<>();
+	@Value("${universe.processor.pulse}")
+	private long pulse;
 
-	public UniverseProcessor() throws IllegalArgumentException {
-		if (pulse < 1) {
-			throw new IllegalArgumentException("Pulse must be greater than 0");
-		}
-	}
+	private AtomicLong messageId = new AtomicLong();
+
+	private Message universeViewMessage = new Message();
 
 	@PostConstruct
 	public void init() {
+		if (pulse < 1) {
+			throw new IllegalArgumentException("Pulse must be greater than 0");
+		}
 
-		universeView.setCell(new Cell(2, 2, 0, 0, 0));
-		universeView.setCell(new Cell(3, 3, 0, 0, 0));
-		universeView.setCell(new Cell(3, 4, 0, 0, 0));
-		universeView.setCell(new Cell(2, 4, 0, 0, 0));
-		universeView.setCell(new Cell(1, 4, 0, 0, 0));
+		universeViewMessage.setXRng(universeView.getX());
+		universeViewMessage.setYRng(universeView.getY());
 
 		new Thread(this).start();
 	}
@@ -49,8 +56,6 @@ public class UniverseProcessor implements Runnable {
 
 		logger.info("Starting UniverseProcessor with pulse[{}ms]", pulse);
 
-		display(-1);
-
 		while (true) {
 			try {
 				Thread.sleep(pulse);
@@ -58,34 +63,23 @@ public class UniverseProcessor implements Runnable {
 				logger.error("error during pulse", pulse, e);
 			}
 
-			long stime = System.currentTimeMillis();
 			calculateNextGeneration();
-
-			display(System.currentTimeMillis() - stime);
 		}
 	}
 
-	private void display(long run) {
-		try {
-			new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+	public Message getUniverseView() {
+		return universeViewMessage;
+	}
 
-		String s = "Run : " + run + "ms\n";
-		for (int y = 0, by = universeView.getY(); y < by; y++) {
-			for (int x = 0, bx = universeView.getX(); x < bx; x++) {
-				s += universeView.isCellExist(x, y) ? "*" : ".";
-			}
-			s += "\n";
-		}
-		System.out.print(s);
+	private void broadcastMessage(Message msg) {
+		broadcastTemplate.convertAndSend(TOPIC_CELLS, msg);
 	}
 
 	public void updateUniverse(List<Cell> cells) {
 		if (cells != null && !cells.isEmpty()) {
 			synchronized (universeView) {
-				cells.forEach(universeView::setCell);
+				List<Cell> update = cells.stream().filter(universeView::setCell).collect(Collectors.toList());
+				broadcastMessage(new Message(messageId.incrementAndGet(), null, update, null));
 			}
 		}
 	}
@@ -93,6 +87,9 @@ public class UniverseProcessor implements Runnable {
 	private void calculateNextGeneration() {
 
 		synchronized (universeView) {
+			List<Cell> viewList = new ArrayList<>();
+			List<Cell> createList = new ArrayList<>();
+			List<Cell> deleteList = new ArrayList<>();
 
 			/*
 			 * 1) Any live cell with fewer than two live neighbors dies, as if by
@@ -110,68 +107,48 @@ public class UniverseProcessor implements Runnable {
 			for (int y = 0, boundY = universeView.getY(); y < boundY; y++) {
 				for (int x = 0, boundX = universeView.getX(); x < boundX; x++) {
 
-					int numNeighbour = getNumberOfNeighbor(x, y);
-					if (universeView.isCellExist(x, y)) {
-						if (numNeighbour < 2 || numNeighbour > 3) {
-							deleteList.add(new int[] { x, y });
+					List<Cell> neighbours = getNeighbours(x, y);
+					Cell currentCell = universeView.getCell(x, y);
+					if (currentCell != null) {
+						if (neighbours.size() < 2 || neighbours.size() > 3) {
+							deleteList.add(currentCell);
+							currentCell = null;
 						}
-					} else if (numNeighbour == 3) {
-						createList.add(new Cell(x, y, 0, 0, 0));
+					} else if (neighbours.size() == 3) {
+						int red = neighbours.stream().mapToInt(Cell::getRed).sum();
+						int green = neighbours.stream().mapToInt(Cell::getGreen).sum();
+						int blue = neighbours.stream().mapToInt(Cell::getBlue).sum();
+						currentCell = new Cell(x, y, red / 3, green / 3, blue / 3);
+						createList.add(currentCell);
+					}
+
+					if (currentCell != null) {
+						viewList.add(currentCell);
 					}
 				}
 			}
 
-			deleteList.forEach(i -> universeView.deleteCell(i[0], i[1]));
+			deleteList.forEach(cell -> universeView.deleteCell(cell.getXLocation(), cell.getYLocation()));
 			createList.forEach(universeView::setCell);
-			deleteList.clear();
-			createList.clear();
+
+			universeViewMessage.setId(messageId.incrementAndGet());
+			universeViewMessage.setMessageData(viewList, null, null);
+
+			if (!createList.isEmpty() || !deleteList.isEmpty()) {
+				broadcastMessage(new Message(messageId.incrementAndGet(), null, createList, deleteList));
+			}
 		}
 	}
 
-	private int getNumberOfNeighbor(int x, int y) {
-		int neighbour = 0;
+	private List<Cell> getNeighbours(int x, int y) {
+		List<int[]> neighbourHoods = Arrays.asList(new int[] { getWrapX(x - 1), getWrapY(y - 1) },
+				new int[] { x, getWrapY(y - 1) }, new int[] { getWrapX(x + 1), getWrapY(y - 1) },
+				new int[] { getWrapX(x - 1), y }, new int[] { getWrapX(x + 1), y },
+				new int[] { getWrapX(x - 1), getWrapY(y + 1) }, new int[] { x, getWrapY(y + 1) },
+				new int[] { getWrapX(x + 1), getWrapY(y + 1) });
 
-		// top right
-		if (universeView.isCellExist(getWrapX(x - 1), getWrapY(y - 1))) {
-			neighbour++;
-		}
-
-		// top center
-		if (universeView.isCellExist(x, getWrapY(y - 1))) {
-			neighbour++;
-		}
-
-		// top left
-		if (universeView.isCellExist(getWrapX(x + 1), getWrapY(y - 1))) {
-			neighbour++;
-		}
-
-		// middle right
-		if (universeView.isCellExist(getWrapX(x - 1), y)) {
-			neighbour++;
-		}
-
-		// middle left
-		if (universeView.isCellExist(getWrapX(x + 1), y)) {
-			neighbour++;
-		}
-
-		// bottom right
-		if (universeView.isCellExist(getWrapX(x - 1), getWrapY(y + 1))) {
-			neighbour++;
-		}
-
-		// bottom center
-		if (universeView.isCellExist(x, getWrapY(y + 1))) {
-			neighbour++;
-		}
-
-		// bottom left
-		if (universeView.isCellExist(getWrapX(x + 1), getWrapY(y + 1))) {
-			neighbour++;
-		}
-
-		return neighbour;
+		return neighbourHoods.stream().filter(cell -> universeView.isCellExist(cell[0], cell[1]))
+				.map(cell -> universeView.getCell(cell[0], cell[1])).collect(Collectors.toList());
 	}
 
 	// wrap around x when out of bound

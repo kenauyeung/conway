@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Hello WebSocket</title>
+    <link href="/webjars/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/main.css" rel="stylesheet">
+    <script src="/webjars/jquery/jquery.min.js"></script>
+    <script src="/webjars/sockjs-client/sockjs.min.js"></script>
+    <script src="/webjars/stomp-websocket/stomp.min.js"></script>
+    <script src="/conway.js"></script>
+    <style>
+        .conway-cell {
+            height: 20px;
+            width: 20px;
+            border: 1px solid grey;
+        }
+    </style>
+</head>
+
+<body>
+    <noscript>
+        <h2 style="color: #ff0000">Seems your browser doesn't support Javascript! Websocket relies on Javascript being enabled. Please enable Javascript
+            and reload this page!</h2>
+    </noscript>
+    <div id="main-content" class="container" style="margin-top:5px">
+        <div class="row">
+            <div class="col-md-4">
+                <form class="form-inline">
+                    <div class="form-group">
+                        <label for="connect">WebSocket connection:</label>
+                        <button id="connect" class="btn btn-default" type="submit">Connect</button>&nbsp;
+                        <button id="disconnect" class="btn btn-default" type="submit" disabled="disabled">Disconnect
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="col-md-2">
+                <div class="user-cell-color" style="height:30px; display:inline-block; border: 1px solid grey;">&nbsp;Your Cell Color&nbsp;</div>
+            </div>
+            <div class="col-md-4">Add Pattern :
+                <select id="patternSelect">
+                    <option value="single">Single Cell</option>
+                    <option value="block">Block</option>
+                    <option value="beehive">Bee Hive</option>
+                    <option value="loaf">Loaf</option>
+                    <option value="beacon">Beacon</option>
+                    <option value="glider">Glider</option>
+                </select>
+                <button id="send" class="btn btn-default">Add Pattern</button>&nbsp;
+            </div>
+        </div>
+        <br/>
+        <div class="row">
+            <div id="drawArea" class="col-md-12" />
+        </div>
+    </div>
+</body>
+
+</html>
+<script>
+    conway.onConnected = function (connected) {
+        $("#connect").prop("disabled", connected);
+        $("#disconnect").prop("disabled", !connected);
+    };
+
+    conway.onDataInitialized = function () {
+        $(".conway-cell").click(function (event) {
+            var arr = this.id.split('_');
+            conway.addCells($('#patternSelect').val(), arr[0], arr[1]);
+        });
+    }
+
+    $(function () {
+        $("form").on('submit', function (e) {
+            e.preventDefault();
+        });
+        $("#connect").click(function () {
+            conway.connect();
+        });
+        $("#disconnect").click(function () {
+            conway.disconnect();
+        });
+        $("#send").click(function () {
+            conway.addCells($('#patternSelect').val());
+        });
+    });
+</script>

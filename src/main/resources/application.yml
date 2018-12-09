@@ -1,0 +1,9 @@
+server:
+  port: 80
+
+universe:
+  range:
+    x: 20
+    y: 20
+  processor:
+    pulse: 1000
