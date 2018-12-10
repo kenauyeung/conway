@@ -6,12 +6,15 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import org.springframework.util.Assert;
+
 import conway.game.logic.model.Cell;
 import conway.game.logic.model.Message;
 import conway.game.logic.model.Universe;
 
 /**
  * This class responsible for handling universe transition calculation.
+ * 
  * @author Ken
  *
  */
@@ -21,6 +24,9 @@ public class UniverseTransition {
 	private AtomicLong messageId;
 
 	public UniverseTransition(AtomicLong messageId, Universe universeView) {
+		Assert.notNull(messageId, "Message Id counter cannot be null");
+		Assert.notNull(universeView, "UniverseView cannot be null");
+
 		this.messageId = messageId;
 		this.universeView = universeView;
 	}
@@ -72,14 +78,16 @@ public class UniverseTransition {
 			deleteList.forEach(cell -> universeView.deleteCell(cell.getX(), cell.getY()));
 			createList.forEach(universeView::setCell);
 
-			universeViewMessage.setId(messageId.incrementAndGet());
-			universeViewMessage.setMessageData(viewList, null);
+			if (universeViewMessage != null) {
+				universeViewMessage.setId(messageId.incrementAndGet());
+				universeViewMessage.setMessageData(viewList, null);
+			}
 
 			if (!createList.isEmpty() || !deleteList.isEmpty()) {
 				return new Message(messageId.incrementAndGet(), createList, deleteList);
 			}
 		}
-		
+
 		return null;
 	}
 
