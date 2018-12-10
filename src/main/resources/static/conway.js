@@ -57,7 +57,10 @@ var conway = {
             }, {id: initSubId});
 
             conway.stompClient.send("/app/initialize");
-        }, conway.disconnect);
+        }, function(){
+            alert("You have disconnected from server");
+            conway.disconnect();
+        });
     },
     reset: function(){
         conway.runDataProcess = false;
