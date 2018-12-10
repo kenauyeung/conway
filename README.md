@@ -1,5 +1,5 @@
 # Conway's Game of Life
-Implement Conway's Game of Life using Spring Boot + SockJS.
+Implement Conway's Game of Life using Spring Boot + SockJS. For more details of the game please refer to https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
 
 ## Development
 ### Server
@@ -51,3 +51,15 @@ Currently, all cells will be calculated in the transition. Next version should r
 
 The above improvement should work based on assumption that reviving neighbour will not lead to revive neighbour's neighbour.
 
+## Build & Deploy
+### Local
+1. git clone https://github.com/kenauyeung/conway.git
+2. cd conway
+3. mvn clean install
+4. java -jar target/conway-1.0.0-SNAPSHOT.jar
+5. open browser and goto http://localhost/
+### Heroku
+Follow guides from https://devcenter.heroku.com/articles/getting-started-with-java#deploy-the-app when deploying to Heroku.
+
+## Deployed Example
+https://damp-ocean-57579.herokuapp.com/
