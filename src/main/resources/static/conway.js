@@ -30,11 +30,18 @@ var conway = {
             console.log('Connected: ' + frame);
 
             var initSubId = 'initial-subscription-id-' + new Date().getTime();
+            var cellSubId = 'cell-subscription-id-' + new Date().getTime();
 
             // must subscribe this to ensure no update message missed before the initial data arrive
             conway.stompClient.subscribe('/topic/cells', function (message) {
-                conway.gameData.push(JSON.parse(message.body));
-            });
+                if(!conway.runDataProcess && conway.gameData.length > 10){
+                    conway.stompClient.unsubscribe(cellSubId);
+                    alert("Initialzation failed, please connect again");
+                    conway.disconnect();
+                }else{
+                    conway.gameData.push(JSON.parse(message.body));
+                }
+            }, {id: cellSubId});
 
             conway.stompClient.subscribe('/user/queue/initialize', function (message) {
                 var jsonObj = JSON.parse(message.body);
@@ -42,14 +49,12 @@ var conway = {
                 conway.draw.createGrid(jsonObj.initialMessage.xRng, jsonObj.initialMessage.yRng);
                 conway.range = {x:jsonObj.initialMessage.xRng, y:jsonObj.initialMessage.yRng};
                 conway.stompClient.unsubscribe(initSubId);
-                conway.dataParser(jsonObj.initialMessage.data.view);
+                conway.dataParser(jsonObj.initialMessage.data.create);
                 conway.lastDataId = jsonObj.initialMessage.id;
                 conway.runDataProcess = true;
                 conway.dataProcessor();
                 conway.onDataInitialized();
-            }, {
-                id: initSubId
-            });
+            }, {id: initSubId});
 
             conway.stompClient.send("/app/initialize");
         }, conway.disconnect);

@@ -21,6 +21,11 @@ import conway.game.logic.model.Cell;
 import conway.game.logic.model.Message;
 import conway.game.logic.model.Universe;
 
+/**
+ * This class responsible for handling the universe.
+ * @author Ken
+ *
+ */
 @Component
 public class UniverseProcessor implements Runnable {
 
@@ -63,7 +68,7 @@ public class UniverseProcessor implements Runnable {
 				logger.error("error during pulse", pulse, e);
 			}
 
-			calculateNextGeneration();
+			nextGenerationTransition();
 		}
 	}
 
@@ -75,16 +80,16 @@ public class UniverseProcessor implements Runnable {
 		broadcastTemplate.convertAndSend(TOPIC_CELLS, msg);
 	}
 
-	public void updateUniverse(List<Cell> cells) {
+	public void updateUniverseCells(List<Cell> cells) {
 		if (cells != null && !cells.isEmpty()) {
 			synchronized (universeView) {
 				List<Cell> update = cells.stream().filter(universeView::setCell).collect(Collectors.toList());
-				broadcastMessage(new Message(messageId.incrementAndGet(), null, update, null));
+				broadcastMessage(new Message(messageId.incrementAndGet(), update, null));
 			}
 		}
 	}
 
-	private void calculateNextGeneration() {
+	private void nextGenerationTransition() {
 
 		synchronized (universeView) {
 			List<Cell> viewList = new ArrayList<>();
@@ -128,18 +133,24 @@ public class UniverseProcessor implements Runnable {
 				}
 			}
 
-			deleteList.forEach(cell -> universeView.deleteCell(cell.getXLocation(), cell.getYLocation()));
+			deleteList.forEach(cell -> universeView.deleteCell(cell.getX(), cell.getY()));
 			createList.forEach(universeView::setCell);
 
 			universeViewMessage.setId(messageId.incrementAndGet());
-			universeViewMessage.setMessageData(viewList, null, null);
+			universeViewMessage.setMessageData(viewList, null);
 
 			if (!createList.isEmpty() || !deleteList.isEmpty()) {
-				broadcastMessage(new Message(messageId.incrementAndGet(), null, createList, deleteList));
+				broadcastMessage(new Message(messageId.incrementAndGet(), createList, deleteList));
 			}
 		}
 	}
 
+	/**
+	 * Get the 8 neighbour cells around the cell at x,y
+	 * @param x
+	 * @param y
+	 * @return
+	 */
 	private List<Cell> getNeighbours(int x, int y) {
 		List<int[]> neighbourHoods = Arrays.asList(new int[] { getWrapX(x - 1), getWrapY(y - 1) },
 				new int[] { x, getWrapY(y - 1) }, new int[] { getWrapX(x + 1), getWrapY(y - 1) },
@@ -151,12 +162,20 @@ public class UniverseProcessor implements Runnable {
 				.map(cell -> universeView.getCell(cell[0], cell[1])).collect(Collectors.toList());
 	}
 
-	// wrap around x when out of bound
+	/**
+	 *  wrap around x when out of bound
+	 * @param x
+	 * @return
+	 */
 	private int getWrapX(int x) {
 		return x < 0 ? x + universeView.getX() : x % universeView.getX();
 	}
 
-	// wrap around y when out of bound
+	/**
+	 * wrap around y when out of bound
+	 * @param y
+	 * @return
+	 */
 	private int getWrapY(int y) {
 		return y < 0 ? y + universeView.getY() : y % universeView.getY();
 	}

@@ -1,8 +1,6 @@
 package conway.game;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 import static conway.config.WebSocketPath.*;
@@ -17,30 +15,41 @@ import org.springframework.stereotype.Controller;
 import conway.game.logic.UniverseProcessor;
 import conway.game.logic.model.Cell;
 import conway.game.logic.model.InitializeResponse;
-import conway.game.logic.model.Universe;
 
+/**
+ * This class responsible for handling request from front-end client.
+ * @author Ken
+ *
+ */
 @Controller
 public class WebSocketServiceController {
 
 	private Random random = new Random();
 
 	@Autowired
-	private Universe universeView;
-
-	@Autowired
 	UniverseProcessor processor;
 
+	/**
+	 * Call this service to add cells to universe
+	 * @param cells
+	 * @param headerAccessor
+	 */
 	@MessageMapping("/addcells")
 	public void addCells(@Payload List<Cell> cells, SimpMessageHeaderAccessor headerAccessor) {
 		if (cells != null && !cells.isEmpty()) {
 			int[] color = (int[]) headerAccessor.getSessionAttributes().get("color");
 			if (color != null) {
 				cells.stream().forEach(cell -> cell.setColor(color[0], color[1], color[2]));
-				processor.updateUniverse(cells);
+				processor.updateUniverseCells(cells);
 			}
 		}
 	}
 
+	/**
+	 * Call this service during initialization to retrieve active universe view.
+	 * @param headerAccessor
+	 * @return
+	 */
 	@MessageMapping("/initialize")
 	@SendToUser(USER_INITIALIZE)
 	public InitializeResponse initializeUser(SimpMessageHeaderAccessor headerAccessor) {

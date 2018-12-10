@@ -1,14 +1,10 @@
 package conway.game.logic.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 public class Cell {
 
-	@JsonProperty("x")
-	private int xLocation;
+	private int x;
 
-	@JsonProperty("y")
-	private int yLocation;
+	private int y;
 
 	private int[] rgb;
 
@@ -16,10 +12,10 @@ public class Cell {
 		this.rgb = new int[] { 0, 0, 0 };
 	}
 
-	public Cell(int xLocation, int yLocation, int red, int green, int blue) {
+	public Cell(int x, int y, int red, int green, int blue) {
 		this.rgb = new int[] { red, green, blue };
-		this.xLocation = xLocation;
-		this.yLocation = yLocation;
+		this.x = x;
+		this.y = y;
 	}
 
 	public int getRed() {
@@ -40,11 +36,11 @@ public class Cell {
 		rgb[2] = blue;
 	}
 
-	public int getXLocation() {
-		return xLocation;
+	public int getX() {
+		return x;
 	}
 
-	public int getYLocation() {
-		return yLocation;
+	public int getY() {
+		return y;
 	}
 }

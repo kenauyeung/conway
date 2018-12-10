@@ -8,7 +8,7 @@ public class Message {
 	private Long id;
 	private Integer xRng;
 	private Integer yRng;
-	
+
 	@JsonProperty("data")
 	private MessageData messageData;
 
@@ -16,9 +16,9 @@ public class Message {
 
 	}
 
-	public Message(long id, List<Cell> view, List<Cell> create, List<Cell> delete) {
+	public Message(long id, List<Cell> create, List<Cell> delete) {
 		this.id = id;
-		setMessageData(view, create, delete);
+		setMessageData(create, delete);
 	}
 
 	public Long getId() {
@@ -53,11 +53,10 @@ public class Message {
 		this.messageData = messageData;
 	}
 
-	public void setMessageData(List<Cell> view, List<Cell> create, List<Cell> delete) {
+	public void setMessageData(List<Cell> create, List<Cell> delete) {
 		if (messageData == null) {
 			messageData = new MessageData();
 		}
-		messageData.setView(view);
 		messageData.setCreate(create);
 		messageData.setDelete(delete);
 	}

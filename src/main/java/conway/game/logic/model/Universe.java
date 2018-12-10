@@ -34,9 +34,9 @@ public class Universe {
 	}
 
 	public boolean setCell(Cell cell) {
-		if (cell.getXLocation() >= 0 && cell.getYLocation() >= 0 && cell.getXLocation() < getX()
-				&& cell.getYLocation() < getY() && universeCells[cell.getYLocation()][cell.getXLocation()] == null) {
-			universeCells[cell.getYLocation()][cell.getXLocation()] = cell;
+		if (cell.getX() >= 0 && cell.getY() >= 0 && cell.getX() < getX() && cell.getY() < getY()
+				&& universeCells[cell.getY()][cell.getX()] == null) {
+			universeCells[cell.getY()][cell.getX()] = cell;
 			return true;
 		}
 		return false;
